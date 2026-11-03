@@ -84,6 +84,7 @@ def create_or_open_draft(
         body.rel_path,
         user.username,
         team_name=team.name if team else None,
+        template_id=body.template_id,
     )
     session.flush()
     return _detail(session, draft)

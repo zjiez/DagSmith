@@ -87,6 +87,7 @@ class VersionDetail(VersionInfo):
 
 
 class DraftCreate(BaseModel):
+    template_id: str | None = Field(default=None, max_length=100)
     bundle: str
     rel_path: str = Field(pattern=r".+\.py$")
 

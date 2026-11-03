@@ -124,3 +124,10 @@ If DagSmith saves you time, you can [buy me a coffee](https://buymeacoffee.com/b
 ## License
 
 [Apache-2.0](LICENSE)
+
+### DAG templates
+
+Choose a template beside New DAG, enter a new .py path, and click New DAG. Built-in starters include Blank DAG, Sequential Bash tasks, Parallel tasks, and TaskFlow pipeline. Each creates an editable draft with schedule=None; review it and deploy through the usual workflow. Existing files and drafts are never replaced by template creation. Bash and parallel starters require the standard provider.
+
+
+Custom templates: click Templates beside New DAG to create, edit, or delete personal templates. Use {{dag_id}} for the DAG identifier and {{tags}} for the Python tag list. Templates are stored in the metadata database and are visible only to their owner. Saving checks Python syntax without executing the code. Database migration 0005 is required (applied automatically when auto_migrate is enabled).

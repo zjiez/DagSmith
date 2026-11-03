@@ -73,7 +73,7 @@ type EditorState = {
   init: () => Promise<void>;
   selectBundle: (name: string) => Promise<void>;
   refreshFiles: () => Promise<void>;
-  openFile: (relPath: string, forceReadOnly?: boolean) => Promise<void>;
+  openFile: (relPath: string, forceReadOnly?: boolean, templateId?: string) => Promise<void>;
   closeFile: () => void;
   setSource: (text: string) => void;
   setMode: (mode: EditorMode) => void;
@@ -166,14 +166,14 @@ export const useStore = create<EditorState>((set, get) => ({
     }
   },
 
-  openFile: async (relPath, forceReadOnly = false) => {
+  openFile: async (relPath, forceReadOnly = false, templateId) => {
     const { selectedBundle, config } = get();
     if (!selectedBundle) {
       return;
     }
     try {
       if (config?.can_edit && !forceReadOnly) {
-        const draft = await api.openDraft(selectedBundle, relPath);
+        const draft = await api.openDraft(selectedBundle, relPath, templateId);
         const layoutGraph = (draft.layout as { graph?: GraphModel } | null)?.graph;
         const parsed = await api.parse(draft.source);
         const graph = parsed.graph ? mergePositions(parsed.graph, layoutGraph) : undefined;

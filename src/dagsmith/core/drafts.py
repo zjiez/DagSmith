@@ -101,11 +101,16 @@ def create_or_open_draft(
     rel_path: str,
     user: str | None,
     team_name: str | None = None,
+    template_id: str | None = None,
 ) -> Draft:
     """Open the shared draft for a file, creating it (branched from live) if absent."""
     existing = session.scalars(
         select(Draft).where(Draft.bundle == bundle.name, Draft.rel_path == rel_path)
     ).first()
+    if template_id is not None and (
+        existing is not None or storage.safe_resolve(bundle, rel_path, must_exist=False).exists()
+    ):
+        raise ConflictError("A file or draft already exists at this path")
     if existing is not None:
         if existing.status == "archived":
             existing.status = "active"
@@ -120,7 +125,15 @@ def create_or_open_draft(
         # New DAGs created by a team member are tagged with the team, so the
         # native Airflow DAG list can be filtered per team.
         tags = [f"team:{team_name}"] if team_name else ["dagsmith"]
-        source = NEW_DAG_TEMPLATE.format(dag_id=_dag_id_from_path(rel_path), tags=tags)
+        from dagsmith.core.templates import render_template
+
+        if template_id and template_id.startswith("custom:"):
+            from dagsmith.core.templates import owned_template, render_custom
+
+            template = owned_template(session, template_id[7:], user)
+            source = render_custom(template.source, _dag_id_from_path(rel_path), tags)
+        else:
+            source = render_template(template_id or "blank", _dag_id_from_path(rel_path), tags)
 
     draft = Draft(
         bundle=bundle.name,

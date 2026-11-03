@@ -66,7 +66,15 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return (await response.json()) as T;
 }
 
+export interface DagTemplate { id: string; name: string; source: string }
+
 export const api = {
+  templates: () => request<DagTemplate[]>("/templates"),
+  saveTemplate: (id: string, body: { name: string; source: string }) =>
+    request<DagTemplate>(id ? `/templates/${id}` : "/templates", {
+      method: id ? "PUT" : "POST", body: JSON.stringify(body),
+    }),
+  deleteTemplate: (id: string) => request<void>(`/templates/${id}`, { method: "DELETE" }),
   config: () => request<ConfigInfo>("/config"),
   bundles: () => request<BundleInfo[]>("/bundles"),
   files: (bundle: string) =>
@@ -75,10 +83,10 @@ export const api = {
     request<FileContent>(
       `/files/${encodePath(relPath)}?bundle=${encodeURIComponent(bundle)}`,
     ),
-  openDraft: (bundle: string, relPath: string) =>
+  openDraft: (bundle: string, relPath: string, templateId?: string) =>
     request<DraftDetail>("/drafts", {
       method: "POST",
-      body: JSON.stringify({ bundle, rel_path: relPath }),
+      body: JSON.stringify({ bundle, rel_path: relPath, template_id: templateId }),
     }),
   getDraft: (draftId: string) => request<DraftDetail>(`/drafts/${draftId}`),
   saveVersion: (
