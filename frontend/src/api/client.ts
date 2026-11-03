@@ -17,7 +17,11 @@ import type {
 } from "./types";
 
 // Same-origin requests: the Airflow session cookie (_token) is sent automatically.
-const BASE = "/dagsmith/api/v1";
+// Airflow's <base> includes the deployment prefix; dev mode has no <base>.
+const BASE = new URL(
+  "dagsmith/api/v1",
+  document.querySelector("base")?.href ?? window.location.origin + "/",
+).pathname;
 
 export class ApiError extends Error {
   constructor(
