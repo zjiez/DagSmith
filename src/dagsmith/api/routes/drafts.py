@@ -285,3 +285,17 @@ def deploy(
         git_pushed=git_pushed,
         git_error=git_error,
     )
+
+
+@router.delete("/drafts/{draft_id}/versions/{version_no}", status_code=204)
+def delete_version(
+    draft_id: str,
+    version_no: int,
+    user: ApiUser = Depends(require_edit),
+    session: orm.Session = Depends(db_session),
+) -> None:
+    draft = drafts_core.get_draft(session, draft_id)
+    _ensure_access(session, user, draft.bundle, draft.rel_path)
+    if version_no == draft.head_version_no:
+        raise BadRequestError("The current head version cannot be deleted")
+    session.delete(drafts_core.get_version(session, draft, version_no))

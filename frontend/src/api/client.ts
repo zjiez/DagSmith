@@ -107,6 +107,8 @@ export const api = {
       method: "PUT",
       body: JSON.stringify(body),
     }),
+  deleteVersion: (draftId: string, versionNo: number) =>
+    request<void>(`/drafts/${draftId}/versions/${versionNo}`, { method: "DELETE" }),
   versions: (draftId: string) => request<VersionInfo[]>(`/drafts/${draftId}/versions`),
   version: (draftId: string, versionNo: number) =>
     request<VersionDetail>(`/drafts/${draftId}/versions/${versionNo}`),

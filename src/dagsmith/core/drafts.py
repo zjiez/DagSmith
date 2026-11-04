@@ -175,6 +175,9 @@ def save_version(
             "Draft was modified by someone else",
             detail={"head_version_no": draft.head_version_no},
         )
+    head = get_head_version(session, draft)
+    if source == head.source and layout == head.layout:
+        return head
     version = DraftVersion(
         draft_id=draft.id,
         version_no=draft.head_version_no + 1,

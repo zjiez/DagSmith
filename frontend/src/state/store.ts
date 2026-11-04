@@ -232,7 +232,7 @@ export const useStore = create<EditorState>((set, get) => ({
   setSource: (text) => {
     set({
       source: text,
-      dirty: text !== get().draft?.source ? true : get().dirty,
+      dirty: text !== get().draft?.source,
     });
     scheduleParse();
   },
@@ -431,7 +431,7 @@ export const useStore = create<EditorState>((set, get) => ({
 
   save: async (kind, message) => {
     const { draft, source, dirty, saving } = get();
-    if (!draft || saving || (kind === "auto" && !dirty)) {
+    if (!draft || saving || !dirty) {
       return;
     }
     set({ saving: true });

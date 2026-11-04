@@ -51,6 +51,7 @@ export const EditorView: FC = () => {
   const readOnly = useStore((s) => s.readOnly);
   const config = useStore((s) => s.config);
   const saving = useStore((s) => s.saving);
+  const dirty = useStore((s) => s.dirty);
   const validating = useStore((s) => s.validating);
   const deploying = useStore((s) => s.deploying);
   const validation = useStore((s) => s.validation);
@@ -188,7 +189,7 @@ export const EditorView: FC = () => {
                 DAG settings
               </Button>
             ) : undefined}
-            <Button size="sm" onClick={() => void save("manual")} loading={saving}>
+            <Button size="sm" onClick={() => void save("manual")} loading={saving} disabled={!dirty}>
               Save
             </Button>
             <Button size="sm" variant="outline" onClick={() => void validate()} loading={validating}>
