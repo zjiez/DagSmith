@@ -50,6 +50,7 @@ export const EditorView: FC = () => {
   const source = useStore((s) => s.source);
   const readOnly = useStore((s) => s.readOnly);
   const config = useStore((s) => s.config);
+  const autosaveEnabled = useStore((s) => s.autosaveEnabled);
   const saving = useStore((s) => s.saving);
   const dirty = useStore((s) => s.dirty);
   const validating = useStore((s) => s.validating);
@@ -149,6 +150,31 @@ export const EditorView: FC = () => {
     return () => window.removeEventListener("keydown", onKey);
   }, [save]);
 
+  useEffect(() => {
+    const beforeUnload = (event: BeforeUnloadEvent) => {
+      if (!useStore.getState().dirty) return;
+      event.preventDefault();
+      event.returnValue = "";
+    };
+    const onNavigate = (event: MouseEvent) => {
+      if (event.defaultPrevented || event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+      const target = event.target instanceof Element ? event.target.closest("a[href]") : null;
+      if (!(target instanceof HTMLAnchorElement) || target.target === "_blank" || target.hasAttribute("download")) return;
+      if (target.href === window.location.href || !useStore.getState().dirty) return;
+      if (!window.confirm("Discard unsaved changes and leave this page?")) {
+        event.preventDefault(); event.stopPropagation();
+      } else {
+        useStore.setState({ dirty: false });
+      }
+    };
+    window.addEventListener("beforeunload", beforeUnload);
+    document.addEventListener("click", onNavigate, true);
+    return () => {
+      window.removeEventListener("beforeunload", beforeUnload);
+      document.removeEventListener("click", onNavigate, true);
+    };
+  }, []);
+
   return (
     <Flex direction="column" h="100%" minH="0">
       <Flex align="center" gap={3} pb={3} wrap="wrap">
@@ -189,6 +215,16 @@ export const EditorView: FC = () => {
                 DAG settings
               </Button>
             ) : undefined}
+            <label style={{ fontSize: "13px", whiteSpace: "nowrap" }}>
+              <input type="checkbox" checked={autosaveEnabled}
+                disabled={!config?.autosave_interval}
+                onChange={(event) => useStore.getState().setAutosaveEnabled(event.target.checked)} />
+              {" Auto save"}
+            </label>
+            <Button size="sm" variant="outline" disabled={!dirty || saving || regenerating}
+              onClick={() => {
+                if (window.confirm("Discard unsaved changes and reload the last saved draft?")) void reloadDraft();
+              }}>Discard changes</Button>
             <Button size="sm" onClick={() => void save("manual")} loading={saving} disabled={!dirty}>
               Save
             </Button>

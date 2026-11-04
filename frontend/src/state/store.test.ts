@@ -129,3 +129,31 @@ describe("grouping", () => {
     expect(graph().nodes.find((n) => n.id === "b")!.position).toEqual({ x: 20, y: 0 });
   });
 });
+
+describe("autosave preference and leaving the editor", () => {
+  it("persists the autosave preference", () => {
+    useStore.getState().setAutosaveEnabled(false);
+    expect(useStore.getState().autosaveEnabled).toBe(false);
+    expect(localStorage.getItem("dagsmith:autosave")).toBe("off");
+    useStore.getState().setAutosaveEnabled(true);
+    expect(localStorage.getItem("dagsmith:autosave")).toBe("on");
+  });
+
+  it("keeps edits when leaving is cancelled", () => {
+    const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
+    useStore.setState({ dirty: true, source: "unsaved", saving: false });
+    useStore.getState().closeFile();
+    expect(useStore.getState().source).toBe("unsaved");
+    expect(useStore.getState().dirty).toBe(true);
+    confirm.mockRestore();
+  });
+
+  it("discards edits when leaving is confirmed", () => {
+    const confirm = vi.spyOn(window, "confirm").mockReturnValue(true);
+    useStore.setState({ dirty: true, source: "unsaved", saving: false });
+    useStore.getState().closeFile();
+    expect(useStore.getState().source).toBe("");
+    expect(useStore.getState().dirty).toBe(false);
+    confirm.mockRestore();
+  });
+});

@@ -49,6 +49,8 @@ type EditorState = {
   draft?: DraftDetail;
   source: string;
   dirty: boolean;
+  autosaveEnabled: boolean;
+  setAutosaveEnabled: (enabled: boolean) => void;
   saving: boolean;
   readOnly: boolean;
   liveFileHash: string | null;
@@ -110,6 +112,14 @@ export const useStore = create<EditorState>((set, get) => ({
   connections: [],
   files: [],
   source: "",
+  autosaveEnabled: (() => {
+    try { return localStorage.getItem("dagsmith:autosave") !== "off"; }
+    catch { return true; }
+  })(),
+  setAutosaveEnabled: (enabled) => {
+    try { localStorage.setItem("dagsmith:autosave", enabled ? "on" : "off"); } catch { /* storage unavailable */ }
+    set({ autosaveEnabled: enabled });
+  },
   dirty: false,
   saving: false,
   readOnly: true,
@@ -211,6 +221,8 @@ export const useStore = create<EditorState>((set, get) => ({
   },
 
   closeFile: () => {
+    if (get().saving) return;
+    if (get().dirty && !window.confirm("Discard unsaved changes and return to files?")) return;
     set({
       draft: undefined,
       source: "",
@@ -710,9 +722,11 @@ export const startAutosave = (): void => {
     return;
   }
   const tick = () => {
-    const { config, dirty, draft, saving } = useStore.getState();
+    const { config, dirty, draft, saving, autosaveEnabled, readOnly } = useStore.getState();
     const interval = config?.autosave_interval ?? 0;
     if (
+      autosaveEnabled &&
+      !readOnly &&
       interval > 0 &&
       dirty &&
       draft &&
