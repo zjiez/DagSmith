@@ -39,6 +39,8 @@ def main() -> int:
         kwargs = {}
         if "include_examples" in inspect.signature(DagBag).parameters:
             kwargs["include_examples"] = False
+        # Only this short-lived worker receives the DAG import context.
+        sys.path[:0] = sys.argv[1:]
         bag = DagBag(dag_folder=tmp_dir, safe_mode=False, **kwargs)
         dag_count = len(bag.dags)
         for _file, message in bag.import_errors.items():

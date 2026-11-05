@@ -15,7 +15,7 @@ def _fast_validation(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(
         validation,
         "check_import",
-        lambda source: ([], 1),
+        lambda source, import_paths=None: ([], 1),
     )
 
 

@@ -34,3 +34,32 @@ class ValidationWorkerTests(unittest.TestCase):
                 self.dags = {'test': object()}
                 self.import_errors = {}
         self.check_worker(DagBag)
+
+
+class SiblingImportTests(unittest.TestCase):
+    def test_worker_can_import_sibling_module(self):
+        import runpy
+        import tempfile
+        from pathlib import Path
+
+        with tempfile.TemporaryDirectory() as directory:
+            Path(directory, "slack_helper.py").write_text("slack_notify = 42\n")
+            class DagBag:
+                def __init__(self, dag_folder=None, safe_mode=True):
+                    result = runpy.run_path(str(Path(dag_folder, "candidate.py")))
+                    assert result["slack_notify"] == 42
+                    self.dags = {"example": object()}
+                    self.import_errors = {}
+            module = types.ModuleType("airflow.dag_processing.dagbag")
+            module.DagBag = DagBag
+            original_path = sys.path[:]
+            try:
+                with patch.dict(sys.modules, {"airflow.dag_processing.dagbag": module}), patch(
+                    "sys.argv", ["worker", directory]
+                ), patch("sys.stdin", io.StringIO("from slack_helper import slack_notify")), patch(
+                    "sys.stdout", io.StringIO()
+                ):
+                    self.assertEqual(main(), 0)
+            finally:
+                sys.path[:] = original_path
+                sys.modules.pop("slack_helper", None)

@@ -280,7 +280,14 @@ def deploy(
 
     from dagsmith.core.validation import validate_source
 
-    result = validate_source(version.source, deep=True)
+    result = validate_source(
+        version.source,
+        deep=True,
+        import_paths=[
+            storage.safe_resolve(bundle, draft.rel_path, must_exist=False).parent,
+            bundle.root,
+        ],
+    )
     if not result.ok:
         raise ValidationFailedError(
             "Validation failed",

@@ -124,10 +124,10 @@ export const api = {
         version_no: versionNo ?? null,
       }),
     }),
-  validate: (source: string, deep = true) =>
+  validate: (source: string, deep = true, bundle?: string, relPath?: string) =>
     request<ValidateResult>("/validate", {
       method: "POST",
-      body: JSON.stringify({ source, deep }),
+      body: JSON.stringify({ source, deep, bundle, rel_path: relPath }),
     }),
   operators: () => request<BlockDef[]>("/operators"),
   connections: () => request<ConnectionInfo[]>("/connections"),

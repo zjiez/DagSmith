@@ -108,6 +108,8 @@ class ValidationIssue(BaseModel):
 
 
 class ValidateRequest(BaseModel):
+    bundle: str | None = None
+    rel_path: str | None = None
     source: str
     # Deep validation imports the file in a subprocess (executes top-level code).
     deep: bool = True

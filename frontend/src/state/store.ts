@@ -540,7 +540,7 @@ export const useStore = create<EditorState>((set, get) => ({
   validate: async () => {
     set({ validating: true });
     try {
-      set({ validation: await api.validate(get().source), validating: false });
+      set({ validation: await api.validate(get().source, true, get().draft?.bundle, get().draft?.rel_path), validating: false });
     } catch (err) {
       set({ validating: false, notice: errorNotice(err) });
     }
