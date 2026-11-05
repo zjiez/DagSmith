@@ -275,12 +275,19 @@ export const EditorView: FC = () => {
       </Flex>
 
       {parseWarnings.length > 0 && mode !== "code" ? (
-        <Box mb={2} p={2} borderRadius="md" bg="orange.subtle">
-          {parseWarnings.map((warning, index) => (
-            <Text key={index} fontSize="xs">
-              ⚠ {warning}
-            </Text>
-          ))}
+        <Box mb={2} p={2} borderRadius="md" bg="orange.subtle" flexShrink={0}>
+          <details>
+            <summary style={{ cursor: "pointer", fontSize: "13px" }}>
+              ⚠ Editing notices ({parseWarnings.length})
+            </summary>
+            <Box mt={2} maxH="160px" overflowY="auto">
+              {parseWarnings.map((warning, index) => (
+                <Text key={index} fontSize="xs" py={0.5} overflowWrap="anywhere">
+                  ⚠ {warning}
+                </Text>
+              ))}
+            </Box>
+          </details>
         </Box>
       ) : undefined}
 
