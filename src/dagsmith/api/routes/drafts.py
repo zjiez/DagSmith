@@ -33,13 +33,9 @@ from dagsmith.core.db import Draft, Team
 router = APIRouter(tags=["drafts"])
 
 
-def _ensure_access(
-    session: orm.Session, user: ApiUser, bundle: str, rel_path: str
-) -> Team | None:
+def _ensure_access(session: orm.Session, user: ApiUser, bundle: str, rel_path: str) -> Team | None:
     """Team-ownership gate on top of the global permission checks."""
-    return teams_core.ensure_file_access(
-        session, bundle, rel_path, user.username, is_admin(user)
-    )
+    return teams_core.ensure_file_access(session, bundle, rel_path, user.username, is_admin(user))
 
 
 def _detail(session: orm.Session, draft: Draft) -> DraftDetail:
@@ -202,6 +198,8 @@ def git_push(
         user.username,
         message=f"dagsmith: update {draft.rel_path} (draft v{head.version_no})",
         push=False,
+        author_name=user.git_name,
+        author_email=user.git_email,
     )
     # Push target: the team's configured repository/branch override, otherwise
     # the bundle checkout's own upstream (its origin).
@@ -256,6 +254,8 @@ def deploy(
         version_no=body.version_no,
         expected_file_hash=body.expected_file_hash,
         user=user.username,
+        author_name=user.git_name,
+        author_email=user.git_email,
     )
     git_sha = git_result.commit_sha if git_result else None
     git_pushed = git_result.pushed if git_result else False
@@ -269,6 +269,8 @@ def deploy(
             user.username,
             message=f"dagsmith: deploy {draft.rel_path} (draft v{version.version_no})",
             push=False,
+            author_name=user.git_name,
+            author_email=user.git_email,
         )
         git_sha = commit_result.commit_sha or git_sha
         if commit_result.error is None:

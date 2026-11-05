@@ -265,6 +265,8 @@ def deploy(
     expected_file_hash: str | None,
     user: str | None,
     allow_global_git: bool = True,
+    author_name: str | None = None,
+    author_email: str | None = None,
 ) -> tuple[DraftVersion, str, str | None, GitResult | None]:
     """Validate and write the draft version to the live file.
 
@@ -315,6 +317,8 @@ def deploy(
             user,
             message=f"dagsmith: deploy {draft.rel_path} (draft v{version.version_no})",
             push=get_bool("git_push"),
+            author_name=author_name,
+            author_email=author_email,
         )
 
     version.deployed_at = datetime.now(timezone.utc)

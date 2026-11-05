@@ -83,3 +83,45 @@ def test_deploy_with_git_and_audit_endpoint(
     # bundle listing reports the git flag
     bundles = api_client.get("/api/v1/bundles").json()
     assert bundles[0]["git"] is True
+
+
+def test_commit_uses_fab_profile(tmp_path: Path) -> None:
+    from types import SimpleNamespace
+
+    from dagsmith.api.security import ApiUser
+
+    user = ApiUser(
+        "alice",
+        SimpleNamespace(
+            first_name="Alice",
+            last_name="Smith",
+            email="alice@example.com",
+        ),
+    )
+    bundle = _git_bundle(tmp_path)
+    (bundle.root / "dag.py").write_text("x = 1\n")
+    result = gitops.commit_deploy(
+        bundle,
+        "dag.py",
+        user.username,
+        "profile identity",
+        push=False,
+        author_name=user.git_name,
+        author_email=user.git_email,
+    )
+    assert result.error is None
+    identity = subprocess.run(
+        ["git", "-C", str(bundle.root), "log", "-1", "--format=%an|%ae|%cn|%ce"],
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout.strip()
+    assert identity == "Alice Smith|alice@example.com|Alice Smith|alice@example.com"
+
+
+def test_git_profile_fallback() -> None:
+    from dagsmith.api.security import ApiUser
+
+    user = ApiUser("alice", object())
+    assert user.git_name == "alice"
+    assert user.git_email is None
