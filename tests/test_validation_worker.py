@@ -13,9 +13,9 @@ class ValidationWorkerTests(unittest.TestCase):
         module = types.ModuleType('airflow.dag_processing.dagbag')
         module.DagBag = bag_class
         output = io.StringIO()
-        with patch.dict(sys.modules, {'airflow.dag_processing.dagbag': module}):
-            with patch('sys.stdin', io.StringIO('# candidate')), patch('sys.stdout', output):
-                self.assertEqual(main(), 0)
+        with patch.dict(sys.modules, {'airflow.dag_processing.dagbag': module}), \
+                patch('sys.stdin', io.StringIO('# candidate')), patch('sys.stdout', output):
+            self.assertEqual(main(), 0)
         self.assertEqual(json.loads(output.getvalue()), {'errors': [], 'dag_count': 1})
 
     def test_airflow_33_constructor(self):
