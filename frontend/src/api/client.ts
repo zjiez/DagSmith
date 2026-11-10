@@ -83,6 +83,8 @@ export const api = {
   bundles: () => request<BundleInfo[]>("/bundles"),
   files: (bundle: string) =>
     request<FileInfo[]>(`/files?bundle=${encodeURIComponent(bundle)}`),
+  deleteUndeployedFile: (bundle: string, relPath: string) =>
+    request<void>(`/files/${encodePath(relPath)}?bundle=${encodeURIComponent(bundle)}`, { method: "DELETE" }),
   readFile: (bundle: string, relPath: string) =>
     request<FileContent>(
       `/files/${encodePath(relPath)}?bundle=${encodeURIComponent(bundle)}`,

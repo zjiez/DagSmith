@@ -272,3 +272,29 @@ def test_delete_history_preserves_head_and_numbering(api_client):
         "source": "x = 2\n", "expected_head_version_no": 2,
     })
     assert response.json()["version_no"] == 3
+
+
+def test_delete_never_deployed_dag(api_client):
+    draft = _create_draft(api_client, "discard_new.py")
+    response = api_client.delete("/api/v1/files/discard_new.py?bundle=test")
+    assert response.status_code == 204, response.text
+    assert api_client.get(f"/api/v1/drafts/{draft['id']}").status_code == 404
+    files = api_client.get("/api/v1/files?bundle=test").json()
+    assert not any(f["rel_path"] == "discard_new.py" for f in files)
+    replacement = _create_draft(api_client, "discard_new.py")
+    assert replacement["id"] != draft["id"]
+
+
+def test_delete_rejects_live_dag(api_client, bundle_dir):
+    (bundle_dir / "keep.py").write_text("# live\n")
+    _create_draft(api_client, "keep.py")
+    assert api_client.delete("/api/v1/files/keep.py?bundle=test").status_code == 400
+    assert (bundle_dir / "keep.py").read_text() == "# live\n"
+
+
+def test_delete_rejects_previously_deployed_dag(api_client, bundle_dir):
+    draft = _create_draft(api_client, "was_deployed.py")
+    response = api_client.post(f"/api/v1/drafts/{draft['id']}/deploy", json={"expected_file_hash": None})
+    assert response.status_code == 200, response.text
+    (bundle_dir / "was_deployed.py").unlink()
+    assert api_client.delete("/api/v1/files/was_deployed.py?bundle=test").status_code == 400

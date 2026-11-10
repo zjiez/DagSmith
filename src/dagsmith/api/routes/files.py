@@ -6,12 +6,13 @@ from fastapi import APIRouter, Depends
 from sqlalchemy import orm, select
 
 from dagsmith.api.deps import db_session
+from dagsmith.api.errors import BadRequestError, NotFoundError
 from dagsmith.api.schemas import FileContent, FileInfo
-from dagsmith.api.security import ApiUser, is_admin, require_read
+from dagsmith.api.security import ApiUser, is_admin, require_edit, require_read
 from dagsmith.core import drafts as drafts_core
 from dagsmith.core import storage
 from dagsmith.core import teams as teams_core
-from dagsmith.core.db import Draft
+from dagsmith.core.db import Draft, DraftVersion
 from dagsmith.core.model import DagMeta
 from dagsmith.core.parser import parse_meta
 
@@ -48,9 +49,7 @@ def list_files(
 ) -> list[FileInfo]:
     bundle_ref = storage.get_bundle(bundle)
     active_drafts = list(
-        session.scalars(
-            select(Draft).where(Draft.bundle == bundle, Draft.status != "archived")
-        )
+        session.scalars(select(Draft).where(Draft.bundle == bundle, Draft.status != "archived"))
     )
     drafts_by_path = {d.rel_path: d for d in active_drafts}
     bundle_teams = [t for t in teams_core.list_teams(session) if t.bundle == bundle]
@@ -70,9 +69,7 @@ def list_files(
                 best = team
         return best
 
-    def entry(
-        rel_path: str, size: int, mtime, meta: DagMeta | None, deployed: bool
-    ) -> FileInfo:
+    def entry(rel_path: str, size: int, mtime, meta: DagMeta | None, deployed: bool) -> FileInfo:
         team = owning_team(rel_path)
         draft = drafts_by_path.get(rel_path)
         return FileInfo(
@@ -108,9 +105,7 @@ def list_files(
             meta = parse_meta(source)
         except Exception:
             meta = None
-        results.append(
-            entry(draft.rel_path, 0, draft.updated_at, meta, deployed=False)
-        )
+        results.append(entry(draft.rel_path, 0, draft.updated_at, meta, deployed=False))
     return results
 
 
@@ -125,3 +120,28 @@ def read_file(bundle: str, rel_path: str) -> FileContent:
         content_hash=digest,
         mtime=mtime,
     )
+
+
+@router.delete("/files/{rel_path:path}", status_code=204)
+def delete_undeployed_file(
+    bundle: str,
+    rel_path: str,
+    user: ApiUser = Depends(require_edit),
+    session: orm.Session = Depends(db_session),
+) -> None:
+    bundle_ref = storage.get_bundle(bundle)
+    path = storage.safe_resolve(bundle_ref, rel_path, must_exist=False)
+    teams_core.ensure_file_access(session, bundle, rel_path, user.username, is_admin(user))
+    draft = session.scalars(
+        select(Draft).where(Draft.bundle == bundle, Draft.rel_path == rel_path)
+    ).first()
+    if draft is None:
+        raise NotFoundError("Draft not found")
+    deployed_version = session.scalars(
+        select(DraftVersion).where(
+            DraftVersion.draft_id == draft.id, DraftVersion.deployed_at.is_not(None)
+        )
+    ).first()
+    if path.exists() or draft.base_file_hash is not None or deployed_version is not None:
+        raise BadRequestError("Only DAGs that have never been deployed can be deleted")
+    session.delete(draft)

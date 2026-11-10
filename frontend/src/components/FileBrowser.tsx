@@ -102,6 +102,23 @@ const ChangeTeamModal: FC<{
   );
 };
 
+const DeleteDraftButton: FC<{ file: FileInfo }> = ({ file }) => {
+  const bundle = useStore((s) => s.selectedBundle);
+  const canEdit = useStore((s) => s.config?.can_edit);
+  const [busy, setBusy] = useState(false);
+  if (!canEdit || !file.editable || file.deployed || !bundle) return null;
+  return <Button size="2xs" variant="outline" colorPalette="red" loading={busy}
+    onClick={(event) => {
+      event.stopPropagation();
+      if (!window.confirm(`Delete ${file.rel_path} and all its draft history? This cannot be undone.`)) return;
+      setBusy(true);
+      void api.deleteUndeployedFile(bundle, file.rel_path)
+        .then(() => useStore.getState().refreshFiles())
+        .catch((err: unknown) => useStore.getState().setNotice({ type: "error", text: String(err) }))
+        .finally(() => setBusy(false));
+    }}>Delete</Button>;
+};
+
 const StatusBadges: FC<{ file: FileInfo }> = ({ file }) => (
   <>
     {file.team ? (
@@ -317,6 +334,7 @@ export const FileBrowser: FC = () => {
                   </Text>
                   <Box flex="1" minW="2" />
                   <StatusBadges file={file} />
+                  <DeleteDraftButton file={file} />
                   {config?.is_admin ? (
                     <IconButton
                       size="2xs"
@@ -428,6 +446,7 @@ export const FileBrowser: FC = () => {
                 </Box>
                 <Flex w="130px" flexShrink={0} gap={1} align="center" wrap="wrap">
                   <StatusBadges file={file} />
+                  <DeleteDraftButton file={file} />
                   {config?.is_admin ? (
                     <IconButton
                       size="2xs"
