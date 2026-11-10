@@ -294,7 +294,10 @@ def test_delete_rejects_live_dag(api_client, bundle_dir):
 
 def test_delete_rejects_previously_deployed_dag(api_client, bundle_dir):
     draft = _create_draft(api_client, "was_deployed.py")
-    response = api_client.post(f"/api/v1/drafts/{draft['id']}/deploy", json={"expected_file_hash": None})
+    response = api_client.post(
+        f"/api/v1/drafts/{draft['id']}/deploy",
+        json={"expected_file_hash": None},
+    )
     assert response.status_code == 200, response.text
     (bundle_dir / "was_deployed.py").unlink()
     assert api_client.delete("/api/v1/files/was_deployed.py?bundle=test").status_code == 400
